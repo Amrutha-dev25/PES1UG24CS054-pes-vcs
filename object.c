@@ -121,6 +121,39 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
         free(full);
         return 0;
     }
+
+        // Step 5: build path
+    char path[512];
+    object_path(id_out, path, sizeof(path));
+
+    // create directories
+    char dir[512];
+    snprintf(dir, sizeof(dir), "%.*s", (int)(strlen(path) - strlen(strrchr(path, '/') + 1)), path);
+    mkdir(OBJECTS_DIR, 0755);
+    mkdir(dir, 0755);
+
+    // Step 6: temp file
+    char temp_path[512];
+    snprintf(temp_path, sizeof(temp_path), "%s.tmp", path);
+
+    int fd = open(temp_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if (fd < 0) return -1;
+
+    write(fd, full, total_len);
+    fsync(fd);
+    close(fd);
+
+    // Step 7: rename
+    rename(temp_path, path);
+
+    // Step 8: fsync directory
+    int dir_fd = open(dir, O_DIRECTORY);
+    if (dir_fd >= 0) {
+        fsync(dir_fd);
+        close(dir_fd);
+    }
+
+    free(full);
     return 0;
 }
 // Read an object from the store.
