@@ -27,6 +27,8 @@
 #include <dirent.h>
 
 // ─── PROVIDED ────────────────────────────────────────────────────────────────
+int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out);
+uint32_t get_file_mode(const char *path);
 
 // Find an index entry by path (linear scan).
 IndexEntry* index_find(Index *index, const char *path) {
@@ -148,7 +150,7 @@ int index_load(Index *index) {
 
         char hex[HASH_HEX_SIZE + 1];
 
-        if (fscanf(f, "%o %64s %u %u %255s\n",
+        if (fscanf(f, "%o %64s %lu %lu %255s\n",
                    &e->mode,
                    hex,
                    &e->mtime_sec,
@@ -157,7 +159,8 @@ int index_load(Index *index) {
             break;
         }
 
-        hex_to_hash(hex, &e->id);
+        hex_to_hash(hex, &e->hash);
+
         index->count++;
     }
 
@@ -182,9 +185,9 @@ int index_save(const Index *index) {
         const IndexEntry *e = &index->entries[i];
 
         char hex[HASH_HEX_SIZE + 1];
-        hash_to_hex(&e->id, hex);
+        hash_to_hex(&e->hash, hex);
 
-        fprintf(f, "%o %s %u %u %s\n",
+        fprintf(f, "%o %s %lu %lu %s\n",
                 e->mode,
                 hex,
                 e->mtime_sec,
@@ -199,7 +202,6 @@ int index_save(const Index *index) {
     rename(".pes/index.tmp", ".pes/index");
     return 0;
 }
-
 int index_add(Index *index, const char *path) {
 
     struct stat st;
@@ -213,25 +215,32 @@ int index_add(Index *index, const char *path) {
     rewind(f);
 
     void *data = malloc(size);
+    if (!data) {
+        fclose(f);
+        return -1;
+    }
+
     size_t r = fread(data, 1, size, f);
+    fclose(f);
+
     if (r != (size_t)size) {
         free(data);
         return -1;
     }
-    fclose(f);
 
     ObjectID id;
     object_write(OBJ_BLOB, data, size, &id);
     free(data);
 
-
+    // check if already exists
     IndexEntry *e = index_find(index, path);
+
     if (!e) {
         e = &index->entries[index->count++];
     }
 
     e->mode = get_file_mode(path);
-    e->id = id;
+    e->hash = id;
     e->size = size;
     e->mtime_sec = st.st_mtime;
     strcpy(e->path, path);
