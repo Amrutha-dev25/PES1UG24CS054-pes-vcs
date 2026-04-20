@@ -131,6 +131,11 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
 //   - object_write    : save that binary buffer to the store as OBJ_TREE
 //
 // Returns 0 on success, -1 on error.
+static int write_tree_level(Index *index, const char *prefix, ObjectID *out) {
+    // Phase 2: recursive tree builder
+    return 0;
+}
+
 int tree_from_index(ObjectID *id_out) {
     // Phase 2: start tree construction
 
@@ -138,5 +143,5 @@ int tree_from_index(ObjectID *id_out) {
     if (index_load(&index) != 0) return -1;
 
     // will implement logic step by step
-    return 0;
+    return write_tree_level(&index, "", id_out);
 }
