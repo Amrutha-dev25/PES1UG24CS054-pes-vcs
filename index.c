@@ -141,23 +141,23 @@ int index_load(Index *index) {
 
     index->count = 0;
 
-    if (!f) return 0;   // IMPORTANT
+    if (!f) return 0;
 
     while (index->count < MAX_INDEX_ENTRIES) {
         IndexEntry *e = &index->entries[index->count];
 
         char hex[HASH_HEX_SIZE + 1];
 
-        if (fscanf(f, "%o %s %u %s\n",
+        if (fscanf(f, "%o %64s %u %u %255s\n",
                    &e->mode,
                    hex,
+                   &e->mtime_sec,
                    &e->size,
-                   e->path) != 4) {
+                   e->path) != 5) {
             break;
         }
 
-        hex_to_hash(hex, &e->hash);
-
+        hex_to_hash(hex, &e->id);
         index->count++;
     }
 
