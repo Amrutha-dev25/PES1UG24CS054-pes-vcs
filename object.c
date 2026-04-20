@@ -180,6 +180,52 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
 // Returns 0 on success, -1 on error (file not found, corrupt, etc.).
 
 int object_read(const ObjectID *id, ObjectType *type_out, void **data_out, size_t *len_out) {
-    // Phase 1: start object_read
+
+    char path[512];
+    object_path(id, path, sizeof(path));
+
+    FILE *f = fopen(path, "rb");
+    if (!f) return -1;
+
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    rewind(f);
+
+    unsigned char *buffer = malloc(size);
+    fread(buffer, 1, size, f);
+    fclose(f);
+
+    // Step 1: verify hash
+    ObjectID check;
+    compute_hash(buffer, size, &check);
+    if (memcmp(check.hash, id->hash, HASH_SIZE) != 0) {
+        free(buffer);
+        return -1;
+    }
+
+    // Step 2: parse header
+    char *null_pos = memchr(buffer, '\0', size);
+    if (!null_pos) {
+        free(buffer);
+        return -1;
+    }
+
+    size_t header_len = null_pos - (char *)buffer + 1;
+
+    // Step 3: detect type
+    if (strncmp((char *)buffer, "blob", 4) == 0) *type_out = OBJ_BLOB;
+    else if (strncmp((char *)buffer, "tree", 4) == 0) *type_out = OBJ_TREE;
+    else *type_out = OBJ_COMMIT;
+
+    // Step 4: extract data
+    size_t data_len = size - header_len;
+    void *data = malloc(data_len);
+    memcpy(data, buffer + header_len, data_len);
+
+    free(buffer);
+
+    *data_out = data;
+    *len_out = data_len;
+
     return 0;
 }
