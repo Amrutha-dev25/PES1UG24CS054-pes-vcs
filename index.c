@@ -220,7 +220,11 @@ int index_add(Index *index, const char *path) {
     object_write(OBJ_BLOB, data, size, &id);
     free(data);
 
-    IndexEntry *e = &index->entries[index->count++];
+
+    IndexEntry *e = index_find(index, path);
+    if (!e) {
+        e = &index->entries[index->count++];
+    }
 
     e->mode = get_file_mode(path);
     e->id = id;
