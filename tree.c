@@ -153,7 +153,7 @@ static int write_tree_level(Index *index, const char *prefix, ObjectID *out) {
 
         entry->mode = e->mode;
         strcpy(entry->name, rest);
-        entry->hash = e->id;
+        entry->hash = e->hash;
 
         // detect subdirectory
         char *slash = strchr(rest, '/');

@@ -182,11 +182,12 @@ int index_save(const Index *index) {
         const IndexEntry *e = &index->entries[i];
 
         char hex[HASH_HEX_SIZE + 1];
-        hash_to_hex(&e->hash, hex);
+        hash_to_hex(&e->id, hex);
 
-        fprintf(f, "%o %s %u %s\n",
+        fprintf(f, "%o %s %u %u %s\n",
                 e->mode,
                 hex,
+                e->mtime_sec,
                 e->size,
                 e->path);
     }
@@ -196,7 +197,6 @@ int index_save(const Index *index) {
     fclose(f);
 
     rename(".pes/index.tmp", ".pes/index");
-
     return 0;
 }
 
