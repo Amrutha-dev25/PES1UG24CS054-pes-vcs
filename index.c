@@ -213,7 +213,11 @@ int index_add(Index *index, const char *path) {
     rewind(f);
 
     void *data = malloc(size);
-    fread(data, 1, size, f);
+    size_t r = fread(data, 1, size, f);
+    if (r != (size_t)size) {
+        free(data);
+        return -1;
+    }
     fclose(f);
 
     ObjectID id;
