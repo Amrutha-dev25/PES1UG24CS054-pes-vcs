@@ -154,6 +154,37 @@ static int write_tree_level(Index *index, const char *prefix, ObjectID *out) {
         entry->mode = e->mode;
         strcpy(entry->name, rest);
         entry->hash = e->id;
+
+        // detect subdirectory
+        char *slash = strchr(rest, '/');
+
+        if (slash) {
+            char dirname[256];
+            strncpy(dirname, rest, slash - rest);
+            dirname[slash - rest] = '\0';
+
+            // avoid duplicates
+            int exists = 0;
+            for (int j = 0; j < tree.count; j++) {
+                if (strcmp(tree.entries[j].name, dirname) == 0) {
+                    exists = 1;
+                    break;
+                }
+            }
+            if (exists) continue;
+
+            // recursive call
+            char new_prefix[512];
+            snprintf(new_prefix, sizeof(new_prefix), "%s%s/", prefix, dirname);
+
+            ObjectID sub_id;
+            write_tree_level(index, new_prefix, &sub_id);
+
+            TreeEntry *entry = &tree.entries[tree.count++];
+            entry->mode = MODE_DIR;
+            strcpy(entry->name, dirname);
+            entry->hash = sub_id;
+        }
     }
 
     // temporary return (no subdirs yet)
