@@ -187,6 +187,10 @@ static int write_tree_level(Index *index, const char *prefix, ObjectID *out) {
         }
     }
 
+    if (tree.count == 0) {
+        memset(out, 0, sizeof(ObjectID));
+        return 0;
+    }
     // temporary return (no subdirs yet)
     void *data;
     size_t len;
