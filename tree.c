@@ -132,7 +132,38 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
 //
 // Returns 0 on success, -1 on error.
 static int write_tree_level(Index *index, const char *prefix, ObjectID *out) {
-    // Phase 2: recursive tree builder
+
+    Tree tree;
+    tree.count = 0;
+
+    size_t prefix_len = strlen(prefix);
+
+    for (int i = 0; i < index->count; i++) {
+        IndexEntry *e = &index->entries[i];
+
+        // skip if not in this directory
+        if (strncmp(e->path, prefix, prefix_len) != 0) continue;
+
+        const char *rest = e->path + prefix_len;
+
+        // skip nested (we handle later)
+        if (strchr(rest, '/')) continue;
+
+        TreeEntry *entry = &tree.entries[tree.count++];
+
+        entry->mode = e->mode;
+        strcpy(entry->name, rest);
+        entry->hash = e->id;
+    }
+
+    // temporary return (no subdirs yet)
+    void *data;
+    size_t len;
+
+    tree_serialize(&tree, &data, &len);
+    object_write(OBJ_TREE, data, len, out);
+
+    free(data);
     return 0;
 }
 
