@@ -213,24 +213,20 @@ int index_add(Index *index, const char *path) {
     rewind(f);
 
     void *data = malloc(size);
-
     fread(data, 1, size, f);
     fclose(f);
 
     ObjectID id;
     object_write(OBJ_BLOB, data, size, &id);
-
     free(data);
 
     IndexEntry *e = &index->entries[index->count++];
 
     e->mode = get_file_mode(path);
-    e->hash = id;
+    e->id = id;
     e->size = size;
+    e->mtime_sec = st.st_mtime;
     strcpy(e->path, path);
 
-    //THIS IS CRITICAL
-    index_save(index);
-
-    return 0;
+    return index_save(index);
 }
